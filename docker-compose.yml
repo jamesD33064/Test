@@ -1,0 +1,32 @@
+version: '3'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: laravel-app
+    ports:
+      - "80:8000"
+    environment:
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=laravel
+      - DB_USERNAME=root
+      - DB_PASSWORD=password
+    depends_on:
+      - db
+    volumes:
+      - './AsiaYoTest:/var/www/html'
+
+  db:
+    image: mysql:5.7
+    environment:
+      - MYSQL_DATABASE=laravel
+      - MYSQL_ROOT_PASSWORD=password
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+volumes:
+  mysql-data:
