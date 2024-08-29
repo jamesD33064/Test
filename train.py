@@ -2,6 +2,7 @@ import torch
 from torch import nn
 import torchvision as TV
 import torchvision.transforms as transforms
+from torch.utils.tensorboard import SummaryWriter
 from matplotlib import pyplot as plt
 import numpy as np
 import model
@@ -31,6 +32,12 @@ lr = 1e-3
 opt = torch.optim.Adam(M.parameters(), lr=lr)
 lossfn = nn.NLLLoss()
 
+# 初始化 TensorBoard
+writer = SummaryWriter('runs/MNIST')
+# 在 TensorBoard 中記錄模型結構
+sample_data = torch.rand(1, 1, 28, 28)
+writer.add_graph(M, sample_data)
+
 # 開始訓練
 for epoch in range(epochs):
     # 隨機選取一個批次的數據
@@ -41,8 +48,10 @@ for epoch in range(epochs):
     # 模型預測
     pred = M(xt)
     
-    # 計算損失
+    # 計算loss和acc
     loss = lossfn(pred, yt)
+    pred_labels = torch.argmax(pred, dim=1)
+    acc = 100.0 * (pred_labels == yt).sum().item() / batch_size
     
     # 清零上一步的梯度，進行反向傳播和參數更新
     opt.zero_grad()
@@ -51,11 +60,13 @@ for epoch in range(epochs):
 
     # 每10個epoch打印一次訓練準確率和損失
     if epoch % 10 == 0:
-        pred_labels = torch.argmax(pred, dim=1)
-        acc_ = 100.0 * (pred_labels == yt).sum().item() / batch_size
         print(f'Epoch {epoch}:')
-        print(f'  Training Accuracy: {acc_:.2f}%')
+        print(f'  Training Accuracy: {acc:.2f}%')
         print(f'  Training Loss: {loss.item():.4f}')
+
+    # 記錄損失和準確率到 TensorBoard
+    writer.add_scalar('Loss/train', loss.item(), epoch)
+    writer.add_scalar('Accuracy/train', acc, epoch)
 
 # 定義測試函式
 def test_acc(M):
@@ -66,6 +77,8 @@ def test_acc(M):
         preds = M(xt)
         pred_ind = torch.argmax(preds, dim=1)
         acc = (pred_ind == yt).sum().float() / len(test_data)
+        # 記錄測試準確率到 TensorBoard
+        writer.add_scalar('Accuracy/test', acc, epochs)
     return acc
 
 # 保存模型
@@ -75,3 +88,6 @@ torch.save(M.state_dict(), "mnist.pt")
 M.load_state_dict(torch.load("mnist.pt", weights_only=True))
 acc2 = test_acc(M)
 print(f'Testing Accuracy: {(acc2 * 100).item():.2f}%')
+
+# 關閉 TensorBoard 記錄
+writer.close()

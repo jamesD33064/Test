@@ -65,7 +65,6 @@ class CNNWithAttention(nn.Module):
         x = self.conv2(x)
         x = nn.functional.relu(x)
         
-        # Apply attention after second convolution
         x = self.attention(x)
         
         x = self.maxpool(x)
